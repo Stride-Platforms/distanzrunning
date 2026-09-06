@@ -20,10 +20,27 @@ const INTL_NAME_TO_CODE: Record<string, string> = (() => {
   const map: Record<string, string> = {};
   try {
     const dn = new Intl.DisplayNames(["en"], { type: "region" });
-    for (const code of Object.keys(flags)) {
-      if (!/^[A-Z]{2}$/.test(code)) continue;
-      const name = dn.of(code);
-      if (name && name !== code) map[name] = code;
+    const codes = Object.keys(flags).filter((c) => /^[A-Z]{2}$/.test(c));
+    const named = codes
+      .map((code) => [code, dn.of(code)] as const)
+      .filter(([code, name]) => name && name !== code) as [string, string][];
+
+    for (const [code, name] of named) map[name] = code;
+
+    // ICU disambiguates a handful of regions with a trailing
+    // parenthetical, and WHICH runtime you're in decides whether it's
+    // there: Chrome renders FK as "Falkland Islands (Islas Malvinas)"
+    // where Node renders plain "Falkland Islands". This table is built
+    // in the browser (the /races filter is a client component), so a
+    // Node-only check can't see the difference — that's how the
+    // Falklands lost its flag. Register the stripped form too, second
+    // so a real country's exact name always wins the key.
+    for (const [code, name] of named) {
+      const plain = name
+        .replace(/\s*\([^)]*\)/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
+      if (plain && plain !== name && !(plain in map)) map[plain] = code;
     }
   } catch {
     // No Intl.DisplayNames → the alias table below still covers the
