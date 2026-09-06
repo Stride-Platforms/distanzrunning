@@ -124,23 +124,72 @@ export async function geocodeVenue(
   }
 }
 
+/** Mainland framing overrides.
+ *
+ *  A country's official bbox covers its whole TERRITORY, which for a
+ *  few countries reaches thousands of km past the part anyone is
+ *  looking at. The USA is the worst: its bbox runs [-179.9 … -66.9]
+ *  (the Aleutians) by [18.8 … 71.4] (Hawaii to northern Alaska), so
+ *  its centre — where fitBounds points the camera — lands at
+ *  [-123.4, 45.1], in the Pacific off Oregon, ~25° west of the lower
+ *  48. The frame reads as skewed sideways because it IS.
+ *
+ *  Note the 180°-wrap guard below doesn't catch this: the USA's span
+ *  is 113°, comfortably under the threshold, so it sails through.
+ *
+ *  Deriving the frame instead by mirroring the bbox about Mapbox's
+ *  representative `center` was tried and rejected — it fixes the USA
+ *  but crops countries whose centre legitimately sits off-centre
+ *  (Sweden loses Stockholm and Malmö; the Falklands collapse to a
+ *  0.5°-wide sliver). So only the demonstrably-affected countries get
+ *  an explicit mainland box; everything else keeps the geocoder's
+ *  bbox untouched. Values are the standard mainland extents.
+ *
+ *  To extend: compare a country's bbox centre against its `center`
+ *  from the same geocoder response — a large gap means a remote
+ *  territory is dragging the box. */
+const MAINLAND_BOUNDS: Record<string, CountryBounds> = {
+  // Contiguous 48 — Cape Alava WA → West Quoddy Head ME, the Keys →
+  // the Minnesota line. Drops Alaska and Hawaii.
+  "united states": [-124.85, 24.4, -66.95, 49.38],
+  // Drops the Azores (-31°) and Madeira (-17°).
+  portugal: [-9.55, 36.96, -6.19, 42.16],
+  // Peninsular Spain + Balearics. Drops the Canaries (-18°, 27.6°N).
+  spain: [-9.3, 35.95, 4.33, 43.79],
+  // Mainland + Tasmania. Drops Macquarie (-54.6°) and the Indian
+  // Ocean territories.
+  australia: [112.92, -43.64, 153.64, -10.69],
+};
+
+/** Alternative names editors may store for the countries above. */
+const MAINLAND_ALIASES: Record<string, string> = {
+  usa: "united states",
+  us: "united states",
+  "united states of america": "united states",
+};
+
 /** Forward-geocode a country NAME to its bounding box (types=country),
  *  for the /races map's fit-the-whole-country camera. Same token +
- *  24h caching model as geocodeAddress. Returns null when the bbox is
- *  unusable — notably when it spans more than 180° of longitude (the
- *  USA's bbox wraps the antimeridian via Alaska's far islands, and
- *  fitting it would frame the whole world); callers fall back to
- *  fitting the marker set. */
+ *  24h caching model as geocodeAddress. Countries in MAINLAND_BOUNDS
+ *  short-circuit to their mainland frame (no request needed). Returns
+ *  null when the bbox is unusable — notably when it spans more than
+ *  180° of longitude, which would frame the whole world; callers fall
+ *  back to fitting the marker set. */
 export async function geocodeCountryBounds(
   name: string | null | undefined,
 ): Promise<CountryBounds | null> {
   if (!name) return null;
+  const trimmed = name.trim();
+  if (!trimmed) return null;
+
+  const key = trimmed.toLowerCase();
+  const mainland = MAINLAND_BOUNDS[MAINLAND_ALIASES[key] ?? key];
+  if (mainland) return mainland;
+
   const token =
     process.env.MAPBOX_GEOCODING_TOKEN ||
     process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
   if (!token) return null;
-  const trimmed = name.trim();
-  if (!trimmed) return null;
   try {
     const url =
       `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(trimmed)}.json` +
