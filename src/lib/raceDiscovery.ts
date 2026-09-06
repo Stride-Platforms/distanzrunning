@@ -238,14 +238,26 @@ ${wikitext}`;
 // Race-category matching
 // ---------------------------------------------------------------------------
 
+const KM_PER_MILE = 1.609344;
+
 /** Parse the leading number out of a category title ("20 km" → 20,
- *  "Half Marathon" → 21.0975, "Marathon" → 42.195, "5 km" → 5). */
+ *  "Half Marathon" → 21.0975, "Marathon" → 42.195, "5 km" → 5,
+ *  "7 Miles" → 11.265).
+ *
+ *  Mile-denominated categories are matched in their own right rather
+ *  than converted by an editor: the classic US road distances have no
+ *  round metric equivalent, and Falmouth's 7 miles (11.265 km) sits
+ *  1.265 km from "10 km" — INSIDE the 2 km tolerance below, so without
+ *  this it would silently auto-categorise as a 10K. */
 function categoryDistanceKm(title: string): number | null {
   const lower = title.toLowerCase();
   if (lower.includes("half marathon")) return 21.0975;
-  if (lower === "marathon" || lower.includes("full marathon")) return 42.195;
-  const m = lower.match(/(\d+(?:\.\d+)?)\s*km/);
-  return m ? Number(m[1]) : null;
+  if (lower.trim() === "marathon" || lower.includes("full marathon"))
+    return 42.195;
+  const km = lower.match(/(\d+(?:\.\d+)?)\s*km/);
+  if (km) return Number(km[1]);
+  const mi = lower.match(/(\d+(?:\.\d+)?)\s*mi(?:le)?s?\b/);
+  return mi ? Number(mi[1]) * KM_PER_MILE : null;
 }
 
 async function matchRaceCategory(
