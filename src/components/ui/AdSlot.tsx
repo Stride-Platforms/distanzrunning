@@ -351,7 +351,7 @@ export function ShakeoutAd({ width, height }: Dimensions) {
 // AdSlot
 // ============================================================================
 
-const ADSENSE_CLIENT = "ca-pub-8457173435004026";
+const ADSENSE_CLIENT = "ca-pub-5946985206431333";
 const FILL_CHECK_DELAY_MS = 1500;
 
 declare global {

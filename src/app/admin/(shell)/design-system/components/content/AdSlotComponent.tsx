@@ -349,7 +349,7 @@ export default function AdSlotComponent() {
             <span>
               Distanz Running is set up under AdSense publisher{" "}
               <code className="inline-code">
-                ca-pub-8457173435004026
+                ca-pub-5946985206431333
               </code>
               . The AdSense script is injected once in{" "}
               <code className="inline-code">

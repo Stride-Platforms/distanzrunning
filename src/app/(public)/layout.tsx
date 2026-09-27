@@ -63,7 +63,7 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
           data-nscript attribute. */}
       <script
         async
-        src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8457173435004026"
+        src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5946985206431333"
         crossOrigin="anonymous"
       />
     </>
