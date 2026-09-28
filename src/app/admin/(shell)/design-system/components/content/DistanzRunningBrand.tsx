@@ -618,7 +618,7 @@ export default function DistanzRunningBrand() {
             the footer of the document, or some other clear and conspicuous location that
             can be quickly identified: Distanz Running, the Distanz Running design, and
             related marks, designs and logos are trademarks or registered trademarks of
-            Distanz Running Ltd. or its affiliates.
+            Stride Platforms Ltd or its affiliates.
           </p>
         </div>
       </Section>
